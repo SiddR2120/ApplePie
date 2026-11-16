@@ -6,6 +6,49 @@
   <title>Apple Pie</title>
   <style>
     body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+
+    /* ===== DROPDOWN STYLES =====
+       These control how the word list looks, so it's the same in every browser. */
+
+    /* Holds the search bar and its dropdown.
+       "position: relative" lets the dropdown sit right underneath the search bar. */
+    .search-area {
+      position: relative;
+      display: inline-block;
+    }
+
+    /* The dropdown list itself */
+    .word-list {
+      position: absolute;
+      top: 100%;              /* just below the search bar */
+      left: 0;
+      min-width: 100%;        /* at least as wide as the search bar */
+      max-height: 220px;      /* with lots of words, scroll instead of growing */
+      overflow-y: auto;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      z-index: 10;            /* keeps it on top of everything else */
+      font-size: 16px;        /* undo the big heading size */
+      font-weight: normal;    /* undo the bold heading text */
+      line-height: 1.4;
+      text-align: left;
+    }
+
+    /* Each word in the list */
+    .word-option {
+      display: block;
+      padding: 4px 8px;
+      color: black;
+      white-space: nowrap;    /* keeps each word on one line */
+      cursor: pointer;
+    }
+
+    /* A word under the mouse, or chosen with the arrow keys */
+    .word-option:hover,
+    .word-option.highlighted {
+      background: #e8e8e8;
+    }
   </style>
 </head>
 
@@ -16,148 +59,211 @@
 
   <!--
     THE SENTENCE
-    The search box sits right where the blank goes.
-    list="nouns" connects the box to the word list below (the <datalist> with id="nouns").
-    When you type, the browser shows matching words from that list in a dropdown.
+    The search bar sits where the blank goes.
+    The empty "word-list" gets filled with words by the script at the bottom.
+    "hidden" means the list starts out invisible.
   -->
   <h2 style="color:white;">
     I really want a
-    <input type="text" id="search-box" list="nouns" placeholder="Search..." autocomplete="off">
+    <span class="search-area" id="search-area">
+      <input type="text" id="search-box" placeholder="Search..." autocomplete="off">
+      <span class="word-list" id="word-list" hidden></span>
+    </span>
   </h2>
 
-  <!--
-    THE BUTTON
-    "hidden" means it starts out invisible.
-    The script at the bottom of the page makes it appear once a word is picked.
-  -->
+  <!-- THE BUTTON (starts hidden, appears once a word is picked) -->
   <button id="universe-button" hidden>invent the universe</button>
 
 
-  <!--
-    THE WORD LIST
-    Each <option value="..."> is one choice in the dropdown.
-    To add a word, copy any option and change the text inside the quotes.
-    The words are grouped by topic just to keep things tidy.
-  -->
-  <datalist id="nouns">
-
-    <!-- Food & drinks -->
-    <option value="apple"> <option value="apple pie"> <option value="bagel"> <option value="banana">
-    <option value="burger"> <option value="burrito"> <option value="cake"> <option value="candy bar">
-    <option value="cheeseburger"> <option value="cookie"> <option value="croissant"> <option value="cup of coffee">
-    <option value="cup of tea"> <option value="cupcake"> <option value="donut"> <option value="hot dog">
-    <option value="ice cream cone"> <option value="lollipop"> <option value="mango"> <option value="milkshake">
-    <option value="muffin"> <option value="orange"> <option value="pancake"> <option value="peach">
-    <option value="pickle"> <option value="pie"> <option value="pizza"> <option value="pretzel">
-    <option value="sandwich"> <option value="slice of cake"> <option value="smoothie"> <option value="snack">
-    <option value="soda"> <option value="steak"> <option value="taco"> <option value="waffle">
-    <option value="watermelon">
-
-    <!-- Animals -->
-    <option value="alpaca"> <option value="bunny"> <option value="cat"> <option value="dog">
-    <option value="dolphin"> <option value="duck"> <option value="elephant"> <option value="ferret">
-    <option value="frog"> <option value="giraffe"> <option value="goat"> <option value="goldfish">
-    <option value="hamster"> <option value="hedgehog"> <option value="horse"> <option value="kitten">
-    <option value="koala"> <option value="lizard"> <option value="monkey"> <option value="octopus">
-    <option value="otter"> <option value="owl"> <option value="panda"> <option value="parrot">
-    <option value="penguin"> <option value="pet"> <option value="pig"> <option value="pony">
-    <option value="puppy"> <option value="raccoon"> <option value="shark"> <option value="sloth">
-    <option value="snake"> <option value="tiger"> <option value="turtle"> <option value="whale">
-    <option value="zebra">
-
-    <!-- Vehicles -->
-    <option value="airplane"> <option value="bicycle"> <option value="boat"> <option value="bus">
-    <option value="car"> <option value="convertible"> <option value="helicopter"> <option value="hot air balloon">
-    <option value="jet"> <option value="limo"> <option value="motorcycle"> <option value="private jet">
-    <option value="race car"> <option value="rocket"> <option value="scooter"> <option value="skateboard">
-    <option value="sports car"> <option value="submarine"> <option value="tractor"> <option value="train">
-    <option value="truck"> <option value="yacht">
-
-    <!-- Tech & gadgets -->
-    <option value="camera"> <option value="computer"> <option value="drone"> <option value="game console">
-    <option value="keyboard"> <option value="laptop"> <option value="microphone"> <option value="new phone">
-    <option value="pair of headphones"> <option value="phone"> <option value="robot"> <option value="smartwatch">
-    <option value="speaker"> <option value="tablet"> <option value="TV"> <option value="video game">
-
-    <!-- Home & places -->
-    <option value="apartment"> <option value="backyard"> <option value="beach house"> <option value="bed">
-    <option value="blanket"> <option value="cabin"> <option value="castle"> <option value="cottage">
-    <option value="couch"> <option value="farm"> <option value="fireplace"> <option value="garden">
-    <option value="hammock"> <option value="hot tub"> <option value="house"> <option value="island">
-    <option value="lamp"> <option value="mansion"> <option value="pillow"> <option value="pool">
-    <option value="room of my own"> <option value="treehouse">
-
-    <!-- Clothes & accessories -->
-    <option value="backpack"> <option value="bracelet"> <option value="cape"> <option value="coat">
-    <option value="crown"> <option value="dress"> <option value="hat"> <option value="hoodie">
-    <option value="jacket"> <option value="necklace"> <option value="new outfit"> <option value="pair of boots">
-    <option value="pair of shoes"> <option value="pair of sneakers"> <option value="purse"> <option value="ring">
-    <option value="scarf"> <option value="sweater"> <option value="T-shirt"> <option value="tuxedo">
-    <option value="wallet"> <option value="watch">
-
-    <!-- Toys, hobbies & music -->
-    <option value="ball"> <option value="balloon"> <option value="board game"> <option value="book">
-    <option value="comic book"> <option value="doll"> <option value="drum set"> <option value="frisbee">
-    <option value="guitar"> <option value="kite"> <option value="piano"> <option value="puzzle">
-    <option value="stuffed animal"> <option value="teddy bear"> <option value="toy"> <option value="trampoline">
-    <option value="trumpet"> <option value="violin"> <option value="water gun"> <option value="yo-yo">
-
-    <!-- People -->
-    <option value="best friend"> <option value="boyfriend"> <option value="brother"> <option value="buddy">
-    <option value="friend"> <option value="girlfriend"> <option value="husband"> <option value="mentor">
-    <option value="partner"> <option value="roommate"> <option value="sister"> <option value="wife">
-
-    <!-- Nature -->
-    <option value="cactus"> <option value="flower"> <option value="plant"> <option value="rainbow">
-    <option value="rose"> <option value="snow day"> <option value="sunflower"> <option value="sunset">
-    <option value="tree"> <option value="waterfall">
-
-    <!-- Experiences & feelings -->
-    <option value="break"> <option value="chance"> <option value="day off"> <option value="do-over">
-    <option value="dream"> <option value="fresh start"> <option value="haircut"> <option value="high five">
-    <option value="holiday"> <option value="hug"> <option value="job"> <option value="kiss">
-    <option value="massage"> <option value="miracle"> <option value="nap"> <option value="party">
-    <option value="promotion"> <option value="raise"> <option value="road trip"> <option value="second chance">
-    <option value="shower"> <option value="surprise"> <option value="vacation"> <option value="weekend">
-    <option value="win">
-
-    <!-- Fantasy & wild wishes -->
-    <option value="dragon"> <option value="flying carpet"> <option value="genie"> <option value="gold bar">
-    <option value="jetpack"> <option value="magic wand"> <option value="million dollars"> <option value="pet dinosaur">
-    <option value="robot butler"> <option value="superpower"> <option value="time machine"> <option value="treasure chest">
-    <option value="unicorn"> <option value="wizard hat">
-
-  </datalist>
-
-
-  <!--
-    THE SCRIPT
-    This watches the search box. When what's in the box matches
-    a word from the list, the button appears. Otherwise it stays hidden.
-  -->
   <script>
-    // Find the three things on the page we need to work with
-    const searchBox = document.getElementById("search-box");
-    const universeButton = document.getElementById("universe-button");
-    const wordList = document.getElementById("nouns");
+    // ===== 1. THE WORD LIST =====
+    // Every word that can show up in the dropdown.
+    // To add one, put it in quotes and add a comma after it.
+    const words = [
+      // Food & drinks
+      "apple", "apple pie", "bagel", "banana", "burger", "burrito", "cake", "candy bar",
+      "cheeseburger", "cookie", "croissant", "cup of coffee", "cup of tea", "cupcake", "donut",
+      "hot dog", "ice cream cone", "lollipop", "mango", "milkshake", "muffin", "orange", "pancake",
+      "peach", "pickle", "pie", "pizza", "pretzel", "sandwich", "slice of cake", "smoothie",
+      "snack", "soda", "steak", "taco", "waffle", "watermelon",
 
-    // Run this code every time the text in the search box changes
-    searchBox.addEventListener("input", function () {
-      const chosenWord = searchBox.value;
+      // Animals
+      "alpaca", "bunny", "cat", "dog", "dolphin", "duck", "elephant", "ferret", "frog", "giraffe",
+      "goat", "goldfish", "hamster", "hedgehog", "horse", "kitten", "koala", "lizard", "monkey",
+      "octopus", "otter", "owl", "panda", "parrot", "penguin", "pet", "pig", "pony", "puppy",
+      "raccoon", "shark", "sloth", "snake", "tiger", "turtle", "whale", "zebra",
+
+      // Vehicles
+      "airplane", "bicycle", "boat", "bus", "car", "convertible", "helicopter", "hot air balloon",
+      "jet", "limo", "motorcycle", "private jet", "race car", "rocket", "scooter", "skateboard",
+      "sports car", "submarine", "tractor", "train", "truck", "yacht",
+
+      // Tech & gadgets
+      "camera", "computer", "drone", "game console", "keyboard", "laptop", "microphone",
+      "new phone", "pair of headphones", "phone", "robot", "smartwatch", "speaker", "tablet",
+      "TV", "video game",
+
+      // Home & places
+      "apartment", "backyard", "beach house", "bed", "blanket", "cabin", "castle", "cottage",
+      "couch", "farm", "fireplace", "garden", "hammock", "hot tub", "house", "island", "lamp",
+      "mansion", "pillow", "pool", "room of my own", "treehouse",
+
+      // Clothes & accessories
+      "backpack", "bracelet", "cape", "coat", "crown", "dress", "hat", "hoodie", "jacket",
+      "necklace", "new outfit", "pair of boots", "pair of shoes", "pair of sneakers", "purse",
+      "ring", "scarf", "sweater", "T-shirt", "tuxedo", "wallet", "watch",
+
+      // Toys, hobbies & music
+      "ball", "balloon", "board game", "book", "comic book", "doll", "drum set", "frisbee",
+      "guitar", "kite", "piano", "puzzle", "stuffed animal", "teddy bear", "toy", "trampoline",
+      "trumpet", "violin", "water gun", "yo-yo",
+
+      // People
+      "best friend", "boyfriend", "brother", "buddy", "friend", "girlfriend", "husband",
+      "mentor", "partner", "roommate", "sister", "wife",
+
+      // Nature
+      "cactus", "flower", "plant", "rainbow", "rose", "snow day", "sunflower", "sunset", "tree",
+      "waterfall",
+
+      // Experiences & feelings
+      "break", "chance", "day off", "do-over", "dream", "fresh start", "haircut", "high five",
+      "holiday", "hug", "job", "kiss", "massage", "miracle", "nap", "party", "promotion", "raise",
+      "road trip", "second chance", "shower", "surprise", "vacation", "weekend", "win",
+
+      // Fantasy & wild wishes
+      "dragon", "flying carpet", "genie", "gold bar", "jetpack", "magic wand", "million dollars",
+      "pet dinosaur", "robot butler", "superpower", "time machine", "treasure chest", "unicorn",
+      "wizard hat"
+    ];
+
+
+    // ===== 2. FIND THE PARTS OF THE PAGE WE NEED =====
+    const searchArea = document.getElementById("search-area");
+    const searchBox = document.getElementById("search-box");
+    const wordList = document.getElementById("word-list");
+    const universeButton = document.getElementById("universe-button");
+
+    // Remembers which word is highlighted with the arrow keys.
+    // -1 means "no word highlighted yet".
+    let highlightedIndex = -1;
+
+
+    // ===== 3. SHOW THE WORDS THAT MATCH WHAT'S TYPED =====
+    function showMatches() {
+      const typed = searchBox.value.toLowerCase();
+
+      // Clear out the old list and reset the highlight
+      wordList.innerHTML = "";
+      highlightedIndex = -1;
+
+      // Go through every word and add the ones that contain what was typed
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+
+        if (word.toLowerCase().includes(typed)) {
+          const option = document.createElement("span");
+          option.className = "word-option";
+          option.textContent = word;
+
+          // Clicking a word picks it
+          option.addEventListener("click", function () {
+            pickWord(word);
+          });
+
+          wordList.appendChild(option);
+        }
+      }
+
+      // Only show the list if at least one word matched
+      wordList.hidden = (wordList.children.length === 0);
+    }
+
+
+    // ===== 4. PICK A WORD =====
+    function pickWord(word) {
+      searchBox.value = word;   // put the word in the search bar
+      wordList.hidden = true;   // close the list
+      updateButton();           // show the button
+    }
+
+
+    // ===== 5. SHOW OR HIDE THE BUTTON =====
+    // The button only appears when the search bar holds a word from the list.
+    function updateButton() {
+      const typed = searchBox.value.toLowerCase();
       let wordIsOnList = false;
 
-      // Go through every word in the list and check for a match
-      for (let i = 0; i < wordList.options.length; i++) {
-        if (wordList.options[i].value === chosenWord) {
+      for (let i = 0; i < words.length; i++) {
+        if (words[i].toLowerCase() === typed) {
           wordIsOnList = true;
         }
       }
 
-      // Show the button if there was a match, hide it if not
-      if (wordIsOnList) {
-        universeButton.hidden = false;
-      } else {
-        universeButton.hidden = true;
+      universeButton.hidden = !wordIsOnList;
+    }
+
+
+    // ===== 6. HIGHLIGHT A WORD WITH THE ARROW KEYS =====
+    function highlightOption() {
+      const options = wordList.children;
+
+      for (let i = 0; i < options.length; i++) {
+        if (i === highlightedIndex) {
+          options[i].classList.add("highlighted");
+          options[i].scrollIntoView({ block: "nearest" }); // scroll the list if needed
+        } else {
+          options[i].classList.remove("highlighted");
+        }
+      }
+    }
+
+
+    // ===== 7. CONNECT EVERYTHING TO THE SEARCH BAR =====
+
+    // Clicking into the search bar opens the list
+    searchBox.addEventListener("focus", showMatches);
+    searchBox.addEventListener("click", showMatches);
+
+    // Typing updates the list and the button
+    searchBox.addEventListener("input", function () {
+      showMatches();
+      updateButton();
+    });
+
+    // Keyboard controls: arrows to move, Enter to pick, Escape to close
+    searchBox.addEventListener("keydown", function (event) {
+      const optionCount = wordList.children.length;
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();            // stop the page from scrolling
+        if (wordList.hidden) {
+          showMatches();                   // open the list if it was closed
+        } else if (highlightedIndex < optionCount - 1) {
+          highlightedIndex++;
+          highlightOption();
+        }
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (highlightedIndex > 0) {
+          highlightedIndex--;
+          highlightOption();
+        }
+      } else if (event.key === "Enter") {
+        if (!wordList.hidden && highlightedIndex >= 0) {
+          pickWord(wordList.children[highlightedIndex].textContent);
+        } else {
+          wordList.hidden = true;
+        }
+      } else if (event.key === "Escape" || event.key === "Tab") {
+        wordList.hidden = true;
+      }
+    });
+
+    // Tapping or clicking anywhere else on the page closes the list
+    document.addEventListener("pointerdown", function (event) {
+      if (!searchArea.contains(event.target)) {
+        wordList.hidden = true;
       }
     });
   </script>
