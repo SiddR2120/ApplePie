@@ -5,7 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Apple Pie</title>
   <style>
-    body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+    body {
+      font-family: sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;            /* space around the edges of the page */
+      box-sizing: border-box;
+      height: 100vh;            /* the page is exactly one screen tall */
+      height: 100dvh;           /* (this line measures phone screens more accurately) */
+      display: flex;            /* stack the heading, sentence and button top to bottom */
+      flex-direction: column;
+    }
+
 
     /* ===== DROPDOWN STYLES =====
        These control how the word list looks, so it's the same in every browser. */
@@ -49,6 +60,63 @@
     .word-option.highlighted {
       background: #e8e8e8;
     }
+
+
+    /* ===== BUTTON STYLES ===== */
+
+    /* The button fills all the space left on the screen below the sentence */
+    #universe-button {
+      flex: 1;                /* take up all the leftover space */
+      min-height: 0;          /* allow it to shrink on short screens */
+      width: 100%;
+      padding: 0;
+      border: none;
+      background: none;       /* no gray box, so only the colorful words show */
+      font-family: inherit;   /* same font as the rest of the page */
+      text-align: left;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    /* An outline when someone reaches the button with the Tab key */
+    #universe-button:focus-visible {
+      outline: 2px solid white;
+    }
+
+    /* The words inside the button.
+       The script sets their size so they're as big as will fit. */
+    #button-text {
+      display: inline-block;
+      vertical-align: top;
+      line-height: 1.1;
+      font-weight: bold;
+      color: transparent;              /* hide the normal text color... */
+      -webkit-background-clip: text;   /* ...and show the background only inside the letters */
+      background-clip: text;
+    }
+
+    /* Used when you have images: each image fills the letters */
+    .image-text {
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* Used when there are no images: a rainbow that slides through the letters */
+    .rainbow-text {
+      background-image: linear-gradient(90deg, red, orange, yellow, lime, cyan, blue, violet, red);
+      background-size: 200% 100%;
+      animation: rainbow-slide 4s linear infinite;
+    }
+
+    @keyframes rainbow-slide {
+      from { background-position: 0% 50%; }
+      to   { background-position: 200% 50%; }
+    }
+
+    /* If someone's device is set to reduce motion, the rainbow stays still */
+    @media (prefers-reduced-motion: reduce) {
+      .rainbow-text { animation: none; }
+    }
   </style>
 </head>
 
@@ -71,11 +139,44 @@
     </span>
   </h2>
 
-  <!-- THE BUTTON (starts hidden, appears once a word is picked) -->
-  <button id="universe-button" hidden>invent the universe</button>
+  <!--
+    THE LOADING TEXT
+    Starts hidden. After a word is picked, it shows "loading" and the script
+    adds a dot every second. Then it disappears and the button shows up.
+  -->
+  <p id="loading-text" style="color:white;" hidden>loading</p>
+
+  <!--
+    THE BUTTON
+    Starts hidden and appears after the loading finishes.
+    The words start as a rainbow; the script swaps in your images if you have any.
+  -->
+  <button id="universe-button" hidden><span id="button-text" class="rainbow-text">invent the universe</span></button>
 
 
   <script>
+    // ===== 0. YOUR IMAGES =====
+    // Upload your pictures to your GitHub repository (Add file -> Upload files),
+    // then list their file names below, each in quotes with a comma after it. Like this:
+    //   "beach.jpg",
+    //   "my-dog.png",
+    // If you put them in a folder, include the folder name: "images/beach.jpg",
+    // Names must match EXACTLY, including capital letters (.JPG is not the same as .jpg).
+    // If this list is empty, or none of the images load, the words will be a rainbow.
+    const images = [
+
+    ];
+
+    // How many seconds each image shows before switching to the next one
+    const secondsPerImage = 2;
+
+    // How many dots "loading" counts up to before the button appears
+    const loadingSeconds = 10;
+
+    // How many seconds of nothing between the loading text and the button
+    const pauseSeconds = 1;
+
+
     // ===== 1. THE WORD LIST =====
     // Every word that can show up in the dropdown.
     // To add one, put it in quotes and add a comma after it.
@@ -143,6 +244,8 @@
     const searchBox = document.getElementById("search-box");
     const wordList = document.getElementById("word-list");
     const universeButton = document.getElementById("universe-button");
+    const buttonText = document.getElementById("button-text");
+    const loadingText = document.getElementById("loading-text");
 
     // Remembers which word is highlighted with the arrow keys.
     // -1 means "no word highlighted yet".
@@ -184,13 +287,34 @@
     function pickWord(word) {
       searchBox.value = word;   // put the word in the search bar
       wordList.hidden = true;   // close the list
-      updateButton();           // show the button
+      checkWord();              // start the loading
     }
 
 
-    // ===== 5. SHOW OR HIDE THE BUTTON =====
-    // The button only appears when the search bar holds a word from the list.
-    function updateButton() {
+    // ===== 5. THE LOADING SHOW, THEN THE BUTTON =====
+    // When the search bar holds a word from the list, this plays out step by step:
+    //   1. "loading" gets a dot every second, but the 5th one is a "!"
+    //   2. it goes blank for a second
+    //   3. "oops my bad nothing happened" shows for 2 seconds
+    //   4. "loading" comes back at 6 dots and gets a dot every second up to loadingSeconds
+    //   5. it goes blank for pauseSeconds, then the button shows up
+    // Changing the word stops everything and starts over.
+
+    // Goes up by 1 every time the loading starts or stops.
+    // Each loading show remembers its own number, and if this changes,
+    // it knows the word was changed and quietly stops.
+    let currentRun = 0;
+
+    // Waits a number of seconds before moving on to the next step
+    function wait(seconds) {
+      return new Promise(function (resolve) {
+        setTimeout(resolve, seconds * 1000);
+      });
+    }
+
+    function checkWord() {
+      stopLoading();   // clear away any loading or button from before
+
       const typed = searchBox.value.toLowerCase();
       let wordIsOnList = false;
 
@@ -200,26 +324,152 @@
         }
       }
 
-      universeButton.hidden = !wordIsOnList;
-    }
-
-
-    // ===== 6. HIGHLIGHT A WORD WITH THE ARROW KEYS =====
-    function highlightOption() {
-      const options = wordList.children;
-
-      for (let i = 0; i < options.length; i++) {
-        if (i === highlightedIndex) {
-          options[i].classList.add("highlighted");
-          options[i].scrollIntoView({ block: "nearest" }); // scroll the list if needed
-        } else {
-          options[i].classList.remove("highlighted");
-        }
+      if (wordIsOnList) {
+        startLoading();
       }
     }
 
+    // "async" lets this function use "await wait(...)" to pause between steps
+    async function startLoading() {
+      currentRun++;
+      const thisRun = currentRun;
 
-    // ===== 7. CONNECT EVERYTHING TO THE SEARCH BAR =====
+      // True if the word was changed while we were waiting
+      function wordChanged() {
+        return thisRun !== currentRun;
+      }
+
+      // Step 1: "loading" with a dot every second, but the 5th is a "!"
+      loadingText.textContent = "loading";
+      loadingText.hidden = false;
+
+      for (let i = 1; i <= 5; i++) {
+        await wait(1);
+        if (wordChanged()) return;
+
+        if (i === 5) {
+          loadingText.textContent = loadingText.textContent + "!";
+        } else {
+          loadingText.textContent = loadingText.textContent + ".";
+        }
+      }
+
+      // Let the "!" show for a second
+      await wait(1);
+      if (wordChanged()) return;
+
+      // Step 2: go blank for a second
+      loadingText.hidden = true;
+      await wait(1);
+      if (wordChanged()) return;
+
+      // Step 3: the "oops" message for 2 seconds
+      loadingText.textContent = "oops my bad nothing happened";
+      loadingText.hidden = false;
+      await wait(2);
+      if (wordChanged()) return;
+
+      // Step 4: "loading" comes back already at 6 dots, then adds one every second
+      // (".".repeat(6) means "a dot, 6 times")
+      let dots = 6;
+      loadingText.textContent = "loading" + ".".repeat(dots);
+
+      while (dots < loadingSeconds) {
+        await wait(1);
+        if (wordChanged()) return;
+        dots++;
+        loadingText.textContent = "loading" + ".".repeat(dots);
+      }
+
+      // Step 5: go blank, then show the button
+      loadingText.hidden = true;
+      await wait(pauseSeconds);
+      if (wordChanged()) return;
+
+      universeButton.hidden = false;
+      fitButtonText();
+    }
+
+    function stopLoading() {
+      currentRun++;   // tells any loading show in progress to stop
+      loadingText.hidden = true;
+      universeButton.hidden = true;
+    }
+
+
+    // ===== 6. MAKE THE BUTTON WORDS AS BIG AS WILL FIT =====
+    // This tries a size halfway between "too small" and "too big", checks whether
+    // the words fit inside the button, and keeps narrowing it down until it
+    // finds the biggest size that fits. The words wrap onto more lines when that
+    // lets them be bigger, like on a tall phone screen.
+    function fitButtonText() {
+      if (universeButton.hidden) {
+        return;   // nothing to measure while the button is hidden
+      }
+
+      const spaceWidth = universeButton.clientWidth;
+      const spaceHeight = universeButton.clientHeight;
+
+      let fitsSize = 10;      // a size we know fits
+      let tooBigSize = 2000;  // a size we know is too big
+
+      while (tooBigSize - fitsSize > 1) {
+        const trySize = Math.floor((fitsSize + tooBigSize) / 2);
+        buttonText.style.fontSize = trySize + "px";
+
+        const fitsWidth = buttonText.offsetWidth <= spaceWidth;
+        const fitsHeight = buttonText.offsetHeight <= spaceHeight;
+
+        if (fitsWidth && fitsHeight) {
+          fitsSize = trySize;
+        } else {
+          tooBigSize = trySize;
+        }
+      }
+
+      buttonText.style.fontSize = fitsSize + "px";
+    }
+
+    // Re-fit the words whenever the screen changes size (like turning a phone sideways)
+    window.addEventListener("resize", fitButtonText);
+
+
+    // ===== 7. FILL THE BUTTON WORDS WITH YOUR IMAGES =====
+    const workingImages = [];   // the images that loaded successfully
+    let currentImage = 0;       // which image is showing right now
+    let imageTimer = null;      // the timer that switches images
+
+    function showNextImage() {
+      buttonText.style.backgroundImage = 'url("' + workingImages[currentImage] + '")';
+
+      // Move on to the next image; after the last one, go back to the first
+      currentImage = currentImage + 1;
+      if (currentImage >= workingImages.length) {
+        currentImage = 0;
+      }
+    }
+
+    // Try loading each image. Only the ones that load get used.
+    for (let i = 0; i < images.length; i++) {
+      const picture = new Image();
+
+      picture.onload = function () {
+        workingImages.push(images[i]);
+
+        // The first time an image loads, switch from the rainbow to images
+        if (imageTimer === null) {
+          buttonText.classList.remove("rainbow-text");
+          buttonText.classList.add("image-text");
+          showNextImage();
+          imageTimer = setInterval(showNextImage, secondsPerImage * 1000);
+        }
+      };
+
+      picture.src = images[i];   // start loading the image
+    }
+
+
+    // ===== 8. CONNECT EVERYTHING TO THE SEARCH BAR =====
 
     // Clicking into the search bar opens the list
     searchBox.addEventListener("focus", showMatches);
@@ -228,7 +478,7 @@
     // Typing updates the list and the button
     searchBox.addEventListener("input", function () {
       showMatches();
-      updateButton();
+      checkWord();
     });
 
     // Keyboard controls: arrows to move, Enter to pick, Escape to close
@@ -259,6 +509,20 @@
         wordList.hidden = true;
       }
     });
+
+    // Highlights the word chosen with the arrow keys
+    function highlightOption() {
+      const options = wordList.children;
+
+      for (let i = 0; i < options.length; i++) {
+        if (i === highlightedIndex) {
+          options[i].classList.add("highlighted");
+          options[i].scrollIntoView({ block: "nearest" }); // scroll the list if needed
+        } else {
+          options[i].classList.remove("highlighted");
+        }
+      }
+    }
 
     // Tapping or clicking anywhere else on the page closes the list
     document.addEventListener("pointerdown", function (event) {
